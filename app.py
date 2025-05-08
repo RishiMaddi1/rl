@@ -1,7 +1,11 @@
+import os
 import psycopg2
 import random
 import time
 from collections import defaultdict
+from flask import Flask, jsonify
+
+app = Flask(__name__)
 
 # === Database Setup ===
 
@@ -328,5 +332,10 @@ def main():
     cur.close()
     conn.close()
 
+@app.route('/')
+def index():
+    return jsonify({"message": "Simulation running..."})
+
 if __name__ == "__main__":
     main()
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
