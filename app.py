@@ -1,4 +1,3 @@
-import os
 import psycopg2
 import random
 import time
@@ -8,118 +7,130 @@ from collections import defaultdict
 
 # Connect to default 'postgres' database first to create 'rldb'
 def create_database():
-     conn = psycopg2.connect(
-        dbname='rl',
-        user='rl',
-        password='fO2doCgFHKKWaMiXNTj2WdKFr9iXX6YB',
-        host='dpg-d0e3dg8dl3ps73baakk0-a',
-        port='5432'
-    )
-    conn.autocommit = True
-    cur = conn.cursor()
+    try:
+        conn = psycopg2.connect(
+            dbname='rl',
+            user='rl',
+            password='fO2doCgFHKKWaMiXNTj2WdKFr9iXX6YB',
+            host='dpg-d0e3dg8dl3ps73baakk0-a',
+            port='5432'
+        )
+        conn.autocommit = True
+        cur = conn.cursor()
 
-    # Create database 'rldb'
-    cur.execute("SELECT 1 FROM pg_database WHERE datname = 'rldb'")
-    exists = cur.fetchone()
-    if not exists:
-        cur.execute('CREATE DATABASE rldb')
-        print("Database 'rldb' created.")
-    else:
-        print("Database 'rldb' already exists.")
+        # Create database 'rldb'
+        cur.execute("SELECT 1 FROM pg_database WHERE datname = 'rldb'")
+        exists = cur.fetchone()
+        if not exists:
+            cur.execute('CREATE DATABASE rldb')
+            print("Database 'rldb' created.")
+        else:
+            print("Database 'rldb' already exists.")
 
-    cur.close()
-    conn.close()
+        cur.close()
+        conn.close()
+    except Exception as e:
+        print(f"Error creating database: {e}")
 
 # Now connect to 'rldb'
 def connect_to_db():
-    return psycopg2.connect(
-        dbname='rldb',
-        user='rl',
-        password='fO2doCgFHKKWaMiXNTj2WdKFr9iXX6YB',
-        host='dpg-d0e3dg8dl3ps73baakk0-a',
-        port='5432'
-    )
-
+    try:
+        return psycopg2.connect(
+            dbname='rldb',
+            user='rl',
+            password='fO2doCgFHKKWaMiXNTj2WdKFr9iXX6YB',
+            host='dpg-d0e3dg8dl3ps73baakk0-a',
+            port='5432'
+        )
+    except Exception as e:
+        print(f"Error connecting to database: {e}")
+        return None
 
 # Create tables
 def create_tables(cur):
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS users (
-      id SERIAL PRIMARY KEY,
-      name TEXT,
-      age INT,
-      city TEXT
-    );
-    """)
+    try:
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+          id SERIAL PRIMARY KEY,
+          name TEXT,
+          age INT,
+          city TEXT
+        );
+        """)
 
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS products (
-      id SERIAL PRIMARY KEY,
-      name TEXT,
-      price NUMERIC,
-      category TEXT
-    );
-    """)
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS products (
+          id SERIAL PRIMARY KEY,
+          name TEXT,
+          price NUMERIC,
+          category TEXT
+        );
+        """)
 
-    cur.execute("""
-    CREATE TABLE IF NOT EXISTS orders (
-      id SERIAL PRIMARY KEY,
-      user_id INT REFERENCES users(id),
-      product_id INT REFERENCES products(id),
-      status TEXT,
-      order_date DATE
-    );
-    """)
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS orders (
+          id SERIAL PRIMARY KEY,
+          user_id INT REFERENCES users(id),
+          product_id INT REFERENCES products(id),
+          status TEXT,
+          order_date DATE
+        );
+        """)
 
-    print("Tables created.")
+        print("Tables created.")
+    except Exception as e:
+        print(f"Error creating tables: {e}")
 
 # Insert mock data
 def insert_mock_data(cur):
-    cur.execute("""
-    INSERT INTO users (name, age, city)
-    SELECT
-      'User_' || i,
-      (random() * 60 + 18)::int,
-      CASE (random() * 5)::int
-        WHEN 0 THEN 'New York'
-        WHEN 1 THEN 'London'
-        WHEN 2 THEN 'Tokyo'
-        WHEN 3 THEN 'Delhi'
-        ELSE 'Berlin'
-      END
-    FROM generate_series(1, 1000) AS s(i)
-    ON CONFLICT DO NOTHING;
-    """)
+    try:
+        cur.execute("""
+        INSERT INTO users (name, age, city)
+        SELECT
+          'User_' || i,
+          (random() * 60 + 18)::int,
+          CASE (random() * 5)::int
+            WHEN 0 THEN 'New York'
+            WHEN 1 THEN 'London'
+            WHEN 2 THEN 'Tokyo'
+            WHEN 3 THEN 'Delhi'
+            ELSE 'Berlin'
+          END
+        FROM generate_series(1, 1000) AS s(i)
+        ON CONFLICT DO NOTHING;
+        """)
 
-    cur.execute("""
-    INSERT INTO products (name, price, category)
-    SELECT
-      'Product_' || i,
-      round((random() * 500 + 20)::numeric, 2),
-      CASE (random() * 3)::int
-        WHEN 0 THEN 'Electronics'
-        WHEN 1 THEN 'Books'
-        ELSE 'Clothing'
-      END
-    FROM generate_series(1, 1000) AS s(i)
-    ON CONFLICT DO NOTHING;
-    """)
+        cur.execute("""
+        INSERT INTO products (name, price, category)
+        SELECT
+          'Product_' || i,
+          round((random() * 500 + 20)::numeric, 2),
+          CASE (random() * 3)::int
+            WHEN 0 THEN 'Electronics'
+            WHEN 1 THEN 'Books'
+            ELSE 'Clothing'
+          END
+        FROM generate_series(1, 1000) AS s(i)
+        ON CONFLICT DO NOTHING;
+        """)
 
-    cur.execute("""
-    INSERT INTO orders (user_id, product_id, status, order_date)
-    SELECT
-      (random() * 999 + 1)::int,
-      (random() * 999 + 1)::int,
-      CASE (random() * 2)::int
-        WHEN 0 THEN 'delivered'
-        ELSE 'pending'
-      END,
-      NOW() - (random() * 365 || ' days')::interval
-    FROM generate_series(1, 10000)
-    ON CONFLICT DO NOTHING;
-    """)
+        cur.execute("""
+        INSERT INTO orders (user_id, product_id, status, order_date)
+        SELECT
+          (random() * 999 + 1)::int,
+          (random() * 999 + 1)::int,
+          CASE (random() * 2)::int
+            WHEN 0 THEN 'delivered'
+            ELSE 'pending'
+          END,
+          NOW() - (random() * 365 || ' days')::interval
+        FROM generate_series(1, 10000)
+        ON CONFLICT DO NOTHING;
+        """)
 
-    print("Mock data inserted successfully.")
+        print("Mock data inserted successfully.")
+    except Exception as e:
+        print(f"Error inserting mock data: {e}")
 
 # === RL-based Cache Simulation ===
 
@@ -272,6 +283,9 @@ def print_summary(label, stats):
 def main():
     create_database()
     conn = connect_to_db()
+    if conn is None:
+        return
+
     cur = conn.cursor()
 
     create_tables(cur)
